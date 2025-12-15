@@ -2,6 +2,7 @@
 #define SORTING_SYSTEM_H
 
 #include <vector>
+#include <string>
 #include <chrono>
 #include <algorithm>
 #include <random>

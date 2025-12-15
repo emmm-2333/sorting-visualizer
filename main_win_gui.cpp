@@ -1,9 +1,16 @@
 #include "win_gui_visualizer.h"
 #include <iostream>
+#include <commctrl.h>
 
 #ifdef _WIN32
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    // 初始化公共控件库
+    INITCOMMONCONTROLSEX icex;
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icex.dwICC = ICC_BAR_CLASSES;
+    InitCommonControlsEx(&icex);
+    
     // 创建可视化对象
     WinGUIVisualizer visualizer;
     
