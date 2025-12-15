@@ -1,0 +1,26 @@
+[
+{
+  "directory": "D:/studio/c++/12.15/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe -DUNICODE -D_UNICODE  -g -std=gnu++20 -o CMakeFiles\\12_15.dir\\main.cpp.obj -c D:\\studio\\c++\\12.15\\main.cpp",
+  "file": "D:/studio/c++/12.15/main.cpp",
+  "output": "CMakeFiles/12_15.dir/main.cpp.obj"
+},
+{
+  "directory": "D:/studio/c++/12.15/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe -DUNICODE -D_UNICODE  -g -std=gnu++20 -o CMakeFiles\\12_15.dir\\sorting_system.cpp.obj -c D:\\studio\\c++\\12.15\\sorting_system.cpp",
+  "file": "D:/studio/c++/12.15/sorting_system.cpp",
+  "output": "CMakeFiles/12_15.dir/sorting_system.cpp.obj"
+},
+{
+  "directory": "D:/studio/c++/12.15/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe -DUNICODE -D_UNICODE  -g -std=gnu++20 -o CMakeFiles\\win_gui_visualizer.dir\\main_win_gui.cpp.obj -c D:\\studio\\c++\\12.15\\main_win_gui.cpp",
+  "file": "D:/studio/c++/12.15/main_win_gui.cpp",
+  "output": "CMakeFiles/win_gui_visualizer.dir/main_win_gui.cpp.obj"
+},
+{
+  "directory": "D:/studio/c++/12.15/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe -DUNICODE -D_UNICODE  -g -std=gnu++20 -o CMakeFiles\\win_gui_visualizer.dir\\win_gui_visualizer.cpp.obj -c D:\\studio\\c++\\12.15\\win_gui_visualizer.cpp",
+  "file": "D:/studio/c++/12.15/win_gui_visualizer.cpp",
+  "output": "CMakeFiles/win_gui_visualizer.dir/win_gui_visualizer.cpp.obj"
+}
+]

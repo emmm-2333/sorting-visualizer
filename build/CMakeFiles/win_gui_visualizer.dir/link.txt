@@ -1,0 +1,3 @@
+"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\win_gui_visualizer.dir/objects.a
+C:\msys64\ucrt64\bin\ar.exe qc CMakeFiles\win_gui_visualizer.dir/objects.a @CMakeFiles\win_gui_visualizer.dir\objects1.rsp
+C:\msys64\ucrt64\bin\g++.exe -g -mwindows -Wl,--whole-archive CMakeFiles\win_gui_visualizer.dir/objects.a -Wl,--no-whole-archive -o win_gui_visualizer.exe -Wl,--out-implib,libwin_gui_visualizer.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\win_gui_visualizer.dir\linkLibs.rsp

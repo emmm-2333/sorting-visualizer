@@ -1,0 +1,4 @@
+D:/studio/c++/12.15/build/CMakeFiles/12_15.dir
+D:/studio/c++/12.15/build/CMakeFiles/win_gui_visualizer.dir
+D:/studio/c++/12.15/build/CMakeFiles/edit_cache.dir
+D:/studio/c++/12.15/build/CMakeFiles/rebuild_cache.dir

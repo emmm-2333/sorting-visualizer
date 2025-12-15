@@ -1,0 +1,3 @@
+"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\12_15.dir/objects.a
+C:\msys64\ucrt64\bin\ar.exe qc CMakeFiles\12_15.dir/objects.a @CMakeFiles\12_15.dir\objects1.rsp
+C:\msys64\ucrt64\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\12_15.dir/objects.a -Wl,--no-whole-archive -o 12_15.exe -Wl,--out-implib,lib12_15.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\12_15.dir\linkLibs.rsp
