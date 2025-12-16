@@ -138,7 +138,8 @@ public:
     void highlightBars(int index1, int index2);
     void clearHighlights();
     void updateStatus(const std::wstring& text);
-    
+    void refreshAll(); // 声明全局刷新方法，解决无法解析符号
+
     // 控制函数
     void startSorting(SortingAlgorithm algorithm);
     void pauseResume();
@@ -162,6 +163,8 @@ private:
 #endif // _WIN32
 
 #endif // WIN_GUI_VISUALIZER_H
+
+
 
 
 

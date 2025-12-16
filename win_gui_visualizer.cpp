@@ -132,10 +132,20 @@ bool WinGUIVisualizer::initializeWindow(HINSTANCE hInstance, int nCmdShow) {
     
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
-    
+
     // 生成默认数据
     generateData(30, DataPattern::Random);
-    
+
+    // 只在窗口可见时刷新，canvas 优先
+    if (IsWindow(hwnd) && IsWindowVisible(hwnd)) {
+        if (hwndCanvas) {
+            InvalidateRect(hwndCanvas, nullptr, TRUE);
+            UpdateWindow(hwndCanvas);
+        } else {
+            InvalidateRect(hwnd, nullptr, TRUE);
+            UpdateWindow(hwnd);
+        }
+    }
     return true;
 }
 
@@ -457,8 +467,13 @@ LRESULT CALLBACK WinGUIVisualizer::WindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
                     RECT rc = pdis->rcItem;
                     // 双缓冲绘制到内存 DC
                     HDC memDC = CreateCompatibleDC(hdc);
-                    HBITMAP bmp = CreateCompatibleBitmap(hdc, rc.right - rc.left, rc.bottom - rc.top);
+                    int width = rc.right - rc.left;
+                    int height = rc.bottom - rc.top;
+                    HBITMAP bmp = CreateCompatibleBitmap(hdc, width, height);
                     HBITMAP oldBmp = (HBITMAP)SelectObject(memDC, bmp);
+
+                    // 在内存 DC 上使用以 (0,0) 为原点的局部矩形，避免首次显示出现黑边/未填充区域
+                    RECT localRect = {0, 0, width, height};
 
                     // 背景颜色
                     COLORREF bg = RGB(40, 120, 200);
@@ -466,14 +481,14 @@ LRESULT CALLBACK WinGUIVisualizer::WindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
                     if (pdis->itemState & ODS_DISABLED) bg = RGB(160, 160, 160);
 
                     HBRUSH br = CreateSolidBrush(bg);
-                    FillRect(memDC, &rc, br);
+                    FillRect(memDC, &localRect, br);
                     DeleteObject(br);
 
                     // 边框
                     HPEN pen = CreatePen(PS_SOLID, 1, RGB(20, 20, 20));
                     HGDIOBJ oldPen = SelectObject(memDC, pen);
                     HBRUSH oldBrush = (HBRUSH)SelectObject(memDC, GetStockObject(NULL_BRUSH));
-                    Rectangle(memDC, rc.left, rc.top, rc.right, rc.bottom);
+                    Rectangle(memDC, localRect.left, localRect.top, localRect.right, localRect.bottom);
                     SelectObject(memDC, oldBrush);
                     SelectObject(memDC, oldPen);
                     DeleteObject(pen);
@@ -483,13 +498,13 @@ LRESULT CALLBACK WinGUIVisualizer::WindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
                     SetTextColor(memDC, RGB(255,255,255));
                     HFONT useFont = visualizer->controlFont ? visualizer->controlFont : (HFONT)GetStockObject(DEFAULT_GUI_FONT);
                     HFONT oldF = (HFONT)SelectObject(memDC, (HGDIOBJ)useFont);
-                     wchar_t buf[256];
-                     GetWindowTextW(pdis->hwndItem, buf, _countof(buf));
-                     DrawTextW(memDC, buf, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                     SelectObject(memDC, oldF);
+                    wchar_t buf[256];
+                    GetWindowTextW(pdis->hwndItem, buf, _countof(buf));
+                    DrawTextW(memDC, buf, -1, &localRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    SelectObject(memDC, oldF);
 
-                    // Blit
-                    BitBlt(hdc, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, memDC, 0, 0, SRCCOPY);
+                    // Blit（将内存位图复制到控件位置）
+                    BitBlt(hdc, rc.left, rc.top, width, height, memDC, 0, 0, SRCCOPY);
 
                     // cleanup
                     SelectObject(memDC, oldBmp);
@@ -503,6 +518,12 @@ LRESULT CALLBACK WinGUIVisualizer::WindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
     }
     
     return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+}
+
+void WinGUIVisualizer::refreshAll() {
+    if (!hwnd || !IsWindow(hwnd) || !IsWindowVisible(hwnd)) return;
+    RedrawWindow(hwnd, nullptr, nullptr,
+                 RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
 void WinGUIVisualizer::generateData(size_t size, DataPattern pattern) {
@@ -531,6 +552,7 @@ void WinGUIVisualizer::generateData(size_t size, DataPattern pattern) {
     // 重绘窗口（优先只重绘 canvas，避免重绘所有控件导致闪烁）
     if (hwndCanvas) InvalidateRect(hwndCanvas, nullptr, FALSE);
     else if (hwnd) InvalidateRect(hwnd, nullptr, FALSE);
+    // 不再调用 refreshAll
 }
 
 std::vector<int> WinGUIVisualizer::generateTestData(size_t size, DataPattern pattern) {
@@ -603,49 +625,33 @@ void WinGUIVisualizer::drawVisualization() {
     PAINTSTRUCT localPs;
     HDC localHdc = BeginPaint(paintTarget, &localPs);
 
-     // 双缓冲: 创建兼容的内存 DC 和位图
+    // 直接绘制到窗口 HDC（移除双缓冲）
     RECT clientRect;
     GetClientRect(paintTarget, &clientRect);
-    int width = clientRect.right - clientRect.left;
-    int height = clientRect.bottom - clientRect.top;
 
-    HDC memDC = CreateCompatibleDC(localHdc);
-    int bmpW = (width > 0) ? width : 1;
-    int bmpH = (height > 0) ? height : 1;
-    HBITMAP memBitmap = CreateCompatibleBitmap(localHdc, bmpW, bmpH);
-    HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
-
-    // 设置字体支持中文 (缓存字体为局部变量)
+    // 设置字体支持中文 (局部字体对象)
     HFONT hFont = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                               DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                               DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"微软雅黑");
-    HFONT oldFont = (HFONT)SelectObject(memDC, hFont);
+    HFONT oldFont = (HFONT)SelectObject(localHdc, hFont);
 
     // 填充背景（黑色）
     HBRUSH backgroundBrush = CreateSolidBrush(RGB(0, 0, 0));
-    FillRect(memDC, &clientRect, backgroundBrush);
+    FillRect(localHdc, &clientRect, backgroundBrush);
     DeleteObject(backgroundBrush);
 
-    // 将 memDC 设置为当前绘制目标，后续绘制使用 memDC
-    HDC prevHdc = hdc; // 保存成员 hdc
-    hdc = memDC; // 让其他绘制函数使用 memDC
+    // 将当前绘制目标设置为窗口 HDC
+    HDC prevHdc = hdc;
+    hdc = localHdc;
 
-    // 绘制柱形图
+    // 绘制柱形图与 UI
     drawBars();
-
-    // 绘制UI元素
     drawUI();
 
-    // 恢复 hdc 并将内存位图复制到屏幕
+    // 恢复 HDC 并清理资源
     hdc = prevHdc;
-    BitBlt(localHdc, 0, 0, width, height, memDC, 0, 0, SRCCOPY);
-
-    // 清理
-    SelectObject(memDC, oldBitmap);
-    SelectObject(memDC, oldFont);
-    DeleteObject(memBitmap);
+    SelectObject(localHdc, oldFont);
     DeleteObject(hFont);
-    DeleteDC(memDC);
 
     EndPaint(paintTarget, &localPs);
 }
