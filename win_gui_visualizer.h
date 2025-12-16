@@ -141,7 +141,7 @@ public:
     void refreshAll(); // 声明全局刷新方法，解决无法解析符号
 
     // 控制函数
-    void startSorting(SortingAlgorithm algorithm);
+    void startSorting(SortingAlgorithm algorithm, bool skipSorting);
     void pauseResume();
     void stopSorting();
     void setAnimationSpeed(int speed); // 1-100, 100最快
@@ -163,6 +163,10 @@ private:
 #endif // _WIN32
 
 #endif // WIN_GUI_VISUALIZER_H
+
+
+
+
 
 
 

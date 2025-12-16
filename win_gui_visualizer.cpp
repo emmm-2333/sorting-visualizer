@@ -136,16 +136,17 @@ bool WinGUIVisualizer::initializeWindow(HINSTANCE hInstance, int nCmdShow) {
     // 生成默认数据
     generateData(30, DataPattern::Random);
 
-    // 只在窗口可见时刷新，canvas 优先
-    if (IsWindow(hwnd) && IsWindowVisible(hwnd)) {
-        if (hwndCanvas) {
-            InvalidateRect(hwndCanvas, nullptr, TRUE);
-            UpdateWindow(hwndCanvas);
-        } else {
-            InvalidateRect(hwnd, nullptr, TRUE);
-            UpdateWindow(hwnd);
-        }
-    }
+    // 简化刷新逻辑以避免冗余
+    // 移除多余的 InvalidateRect 和 UpdateWindow 调用
+    // 确保 refreshAll 是最后的刷新步骤
+
+    // 调用 refreshAll 以确保所有控件和绘图区刷新
+    refreshAll();
+
+    // 调用 startSorting 以触发初始绘制逻辑
+    startSorting(SortingAlgorithm::BubbleSort, true);
+
+
     return true;
 }
 
@@ -157,103 +158,112 @@ void WinGUIVisualizer::createControls() {
                                   DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
     }
 
-    // 数据生成按钮
     hwndBtnGenerateRandom = CreateWindowW(L"BUTTON", L"生成随机数据", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 150, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnGenerateRandom) { MessageBoxW(hwnd, L"生成随机数据按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnGenerateRandom, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnGenerateRandom);
 
     hwndBtnGenerateAsc = CreateWindowW(L"BUTTON", L"生成有序数据", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 150, 30, hwnd, (HMENU)2, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnGenerateAsc) { MessageBoxW(hwnd, L"生成有序数据按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnGenerateAsc, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnGenerateAsc);
 
     hwndBtnGenerateDesc = CreateWindowW(L"BUTTON", L"生成逆序数据", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 150, 30, hwnd, (HMENU)3, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnGenerateDesc) { MessageBoxW(hwnd, L"生成逆序数据按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnGenerateDesc, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnGenerateDesc);
 
     hwndBtnGeneratePartial = CreateWindowW(L"BUTTON", L"生成部分有序数据", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 150, 30, hwnd, (HMENU)4, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnGeneratePartial) { MessageBoxW(hwnd, L"生成部分有序数据按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnGeneratePartial, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnGeneratePartial);
 
-    // 排序算法按钮
     hwndBtnBubbleSort = CreateWindowW(L"BUTTON", L"冒泡排序", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)11, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnBubbleSort) { MessageBoxW(hwnd, L"冒泡排序按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnBubbleSort, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnBubbleSort);
 
     hwndBtnQuickSort = CreateWindowW(L"BUTTON", L"快速排序", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)12, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnQuickSort) { MessageBoxW(hwnd, L"快速排序按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnQuickSort, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnQuickSort);
 
     hwndBtnMergeSort = CreateWindowW(L"BUTTON", L"归并排序", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)13, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnMergeSort) { MessageBoxW(hwnd, L"归并排序按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnMergeSort, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnMergeSort);
 
     hwndBtnHeapSort = CreateWindowW(L"BUTTON", L"堆排序", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)14, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnHeapSort) { MessageBoxW(hwnd, L"堆排序按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnHeapSort, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnHeapSort);
 
     hwndBtnInsertionSort = CreateWindowW(L"BUTTON", L"插入排序", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)15, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnInsertionSort) { MessageBoxW(hwnd, L"插入排序按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnInsertionSort, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnInsertionSort);
 
     hwndBtnSelectionSort = CreateWindowW(L"BUTTON", L"选择排序", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)16, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnSelectionSort) { MessageBoxW(hwnd, L"选择排序按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnSelectionSort, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnSelectionSort);
 
-    // 功能按钮
     hwndBtnCompareAll = CreateWindowW(L"BUTTON", L"性能比较", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)21, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnCompareAll) { MessageBoxW(hwnd, L"性能比较按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnCompareAll, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnCompareAll);
 
     hwndBtnReset = CreateWindowW(L"BUTTON", L"重置数据", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)22, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnReset) { MessageBoxW(hwnd, L"重置数据按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnReset, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnReset);
 
     hwndBtnPauseResume = CreateWindowW(L"BUTTON", L"暂停", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         0, 0, 120, 30, hwnd, (HMENU)23, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndBtnPauseResume) { MessageBoxW(hwnd, L"暂停按钮创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndBtnPauseResume, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndBtnPauseResume);
 
-    // 速度滑块
     hwndTrackbarSpeed = CreateWindowW(TRACKBAR_CLASS, L"速度", WS_VISIBLE | WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
         0, 0, 150, 30, hwnd, (HMENU)31, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndTrackbarSpeed) { MessageBoxW(hwnd, L"速度滑块创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndTrackbarSpeed, TBM_SETRANGE, TRUE, MAKELONG(1, 100));
     SendMessageW(hwndTrackbarSpeed, TBM_SETPOS, TRUE, 50);
     SendMessageW(hwndTrackbarSpeed, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndTrackbarSpeed);
 
-    // 数据大小输入框
     hwndEditDataSize = CreateWindowW(L"EDIT", L"30", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER,
         0, 0, 100, 25, hwnd, (HMENU)41, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndEditDataSize) { MessageBoxW(hwnd, L"数据大小输入框创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndEditDataSize, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndEditDataSize);
 
-    // 状态标签
     hwndStaticStatus = CreateWindowW(L"STATIC", statusText.c_str(), WS_VISIBLE | WS_CHILD,
         0, 0, 400, 25, hwnd, (HMENU)51, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), nullptr);
+    if (!hwndStaticStatus) { MessageBoxW(hwnd, L"状态标签创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
     SendMessageW(hwndStaticStatus, WM_SETFONT, (WPARAM)controlFont, TRUE);
     applyExplorerTheme(hwndStaticStatus);
 
-    // 创建绘图区 (canvas) 用于双缓冲绘制，避免与控件冲突
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
     int clientWidth = clientRect.right - clientRect.left;
     int clientHeight = clientRect.bottom - clientRect.top;
-    // 初始放置在控件下方，layoutControls 会移动大小
     hwndCanvas = CreateWindowExW(0, L"VisualizerCanvas", nullptr, WS_CHILD | WS_VISIBLE,
                                   10, 150, std::max(100, clientWidth - 20), std::max(100, clientHeight - 160),
                                    hwnd, nullptr, (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), this);
+    if (!hwndCanvas) { MessageBoxW(hwnd, L"绘图区Canvas创建失败", L"错误", MB_OK | MB_ICONERROR); return; }
 }
 
 void WinGUIVisualizer::layoutControls() {
@@ -367,22 +377,22 @@ LRESULT CALLBACK WinGUIVisualizer::WindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
                         
                     // 排序算法按钮
                     case 11:
-                        visualizer->startSorting(SortingAlgorithm::BubbleSort);
+                        visualizer->startSorting(SortingAlgorithm::BubbleSort, false);
                         break;
                     case 12:
-                        visualizer->startSorting(SortingAlgorithm::QuickSort);
+                        visualizer->startSorting(SortingAlgorithm::QuickSort, false);
                         break;
                     case 13:
-                        visualizer->startSorting(SortingAlgorithm::MergeSort);
+                        visualizer->startSorting(SortingAlgorithm::MergeSort, false);
                         break;
                     case 14:
-                        visualizer->startSorting(SortingAlgorithm::HeapSort);
+                        visualizer->startSorting(SortingAlgorithm::HeapSort, false);
                         break;
                     case 15:
-                        visualizer->startSorting(SortingAlgorithm::InsertionSort);
+                        visualizer->startSorting(SortingAlgorithm::InsertionSort, false);
                         break;
                     case 16:
-                        visualizer->startSorting(SortingAlgorithm::SelectionSort);
+                        visualizer->startSorting(SortingAlgorithm::SelectionSort, false);
                         break;
                         
                     // 功能按钮
@@ -748,7 +758,15 @@ void WinGUIVisualizer::resetData() {
     else InvalidateRect(hwnd, nullptr, FALSE);
  }
 
-void WinGUIVisualizer::startSorting(SortingAlgorithm algorithm) {
+void WinGUIVisualizer::startSorting(SortingAlgorithm algorithm, bool skipSorting) {
+    if (skipSorting) {
+        // 仅更新状态和刷新绘图区
+        updateStatus(L"初始化完成，准备排序...");
+        if (hwndCanvas) InvalidateRect(hwndCanvas, nullptr, FALSE);
+        else InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
     // 在单独的线程中运行排序算法，避免阻塞UI
     std::thread sortingThread([this, algorithm]() {
         isSorting = true;

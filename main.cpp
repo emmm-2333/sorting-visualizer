@@ -4,6 +4,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include "sorting_system.h"
+#include <windows.h>
 
 void setShowChinese() {
     // 设置控制台输出编码为UTF-8
@@ -100,6 +101,46 @@ void runPerformanceTest(SortingSystem& system) {
                   << std::setw(10) << perf.swaps
                   << std::setw(8) << (perf.stable ? "稳定" : "不稳定") << std::endl;
     }
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    static HWND hButton;
+    static HBRUSH hBrush; // 定义一个画刷用于设置背景色
+
+    switch (message) {
+    case WM_CREATE:
+        hButton = CreateWindow(
+            TEXT("BUTTON"), TEXT("Click Me"),
+            WS_VISIBLE | WS_CHILD,
+            50, 50, 100, 30,
+            hWnd, (HMENU)1, NULL, NULL
+        );
+        hBrush = CreateSolidBrush(RGB(240, 240, 240)); // 创建浅灰色画刷
+        break;
+
+    case WM_CTLCOLORBTN: // 处理按钮的背景色
+    {
+        HDC hdcButton = (HDC)wParam;
+        SetTextColor(hdcButton, RGB(0, 0, 0)); // 设置按钮文字颜色为黑色
+        SetBkMode(hdcButton, TRANSPARENT); // 设置背景模式为透明
+        return (LRESULT)hBrush; // 返回背景画刷
+    }
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == 1) {
+            MessageBox(hWnd, TEXT("Button Clicked"), TEXT("Info"), MB_OK);
+        }
+        break;
+
+    case WM_DESTROY:
+        DeleteObject(hBrush); // 销毁画刷
+        PostQuitMessage(0);
+        break;
+
+    default:
+        return DefWindowProc(hWnd, message, wParam, lParam);
+    }
+    return 0;
 }
 
 int main() {
